@@ -2,8 +2,10 @@
 import random
 from ascii_art import STAGES
 
-# List of secret words
-WORDS = ["python", "git", "github", "snowman", "meltdown"]
+
+WORDS = ["python", "git", "github", "snowman", "meltdown", "branch", "commit", "merge"]
+
+MAX_MISTAKES = len(STAGES) - 1
 
 
 def get_random_word():
@@ -12,62 +14,99 @@ def get_random_word():
 
 
 def display_game_state(mistakes, secret_word, guessed_letters):
-    """Zeigt ASCII-Art-Phase, aktuelles Wort (Unterstriche) und Status."""
-    stage_index = min(mistakes, len(STAGES) - 1)
+    """Zeigt ASCII-Art, Wortanzeige, Fehlerstand und bereits geratene Buchstaben."""
+    stage_index = min(mistakes, MAX_MISTAKES)
+    print("\n" + "=" * 40)
     print(STAGES[stage_index])
+    print("-" * 40)
 
-    display_word = []
-    for letter in secret_word:
-        display_word.append(letter if letter in guessed_letters else "_")
+    
+    display_word = " ".join([ch if ch in guessed_letters else "_" for ch in secret_word])
+    print(f"Word:      {display_word}")
+    print(f"Mistakes:  {mistakes}/{MAX_MISTAKES}")
 
-    print("Word:     ", " ".join(display_word))
-    print(f"Mistakes: {mistakes}/{len(STAGES) - 1}")
-    print(f"Guessed:  {' '.join(sorted(guessed_letters)) if guessed_letters else '-'}\n")
+    if guessed_letters:
+        tried = " ".join(sorted(guessed_letters))
+    else:
+        tried = "-"
+    print(f"Guessed:   {tried}")
+    print("=" * 40 + "\n")
 
 
 def is_word_guessed(secret_word, guessed_letters):
-    """True, wenn alle Buchstaben des geheimen Wortes geraten wurden."""
+    """True, wenn alle Buchstaben des Wortes geraten sind."""
     return all(ch in guessed_letters for ch in set(secret_word))
 
 
-def play_game():
+def prompt_letter():
+    """
+    Fragt den Nutzer nach genau einem alphabetischen Buchstaben (a–z).
+    Wiederholt, bis Eingabe gültig ist.
+    """
+    while True:
+        raw = input("Guess a letter [a-z]: ").strip().lower()
+        if len(raw) != 1:
+            print("Bitte genau EIN Zeichen eingeben.")
+            continue
+        if not raw.isalpha():
+            print("Bitte nur Buchstaben (a–z) eingeben.")
+            continue
+        return raw
+
+
+def prompt_yes_no(msg="Play again? [y/n]: "):
+    """Fragt y/n ab, liefert True für ja, False für nein."""
+    while True:
+        ans = input(msg).strip().lower()
+        if ans in ("y", "yes", "j", "ja"):
+            return True
+        if ans in ("n", "no", "nein"):
+            return False
+        print("Bitte mit 'y'/'yes'/'j' oder 'n'/'no' antworten.")
+
+
+def play_round():
+    """Spielt eine einzelne Runde. Gibt True zurück, wenn gewonnen, sonst False."""
     secret_word = get_random_word()
     guessed_letters = set()
     mistakes = 0
-    max_mistakes = len(STAGES) - 1
 
-    print("Welcome to Snowman Meltdown!")
-
+    print("\nWelcome to Snowman Meltdown!")
     
+
     while True:
         display_game_state(mistakes, secret_word, guessed_letters)
 
         
         if is_word_guessed(secret_word, guessed_letters):
-            print("🎉 Du hast den Schneemann gerettet! Das Wort war:", secret_word)
-            break
-        if mistakes >= max_mistakes:
-            print("💧 Der Schneemann ist geschmolzen! Das Wort war:", secret_word)
-            break
+            print(f"🎉 Gerettet! Das Wort war: {secret_word}\n")
+            return True
+        if mistakes >= MAX_MISTAKES:
+            print(f"💧 Verloren! Der Schneemann ist geschmolzen. Wort: {secret_word}\n")
+            return False
 
         
-        guess = input("Guess a letter: ").lower().strip()
+        guess = prompt_letter()
 
-        
-        if not guess or len(guess) != 1 or not guess.isalpha():
-            print("Bitte genau einen Buchstaben (a–z) eingeben.\n")
-            continue
         if guess in guessed_letters:
-            print("Diesen Buchstaben hast du schon versucht.\n")
+            print("Hinweis: Buchstaben bereits versucht.\n")
             continue
 
-        
+        guessed_letters.add(guess)
         if guess in secret_word:
-            guessed_letters.add(guess)
             print(f"Gut geraten! '{guess}' ist im Wort.\n")
         else:
             mistakes += 1
-            print(f"Leider falsch. '{guess}' kommt nicht vor.\n")
+            print(f"Leider falsch. '{guess}' kommt nicht vor. (+1 Fehler)\n")
+
+
+def play_game():
+    """Hauptschleife mit Wiederholen-Option."""
+    while True:
+        play_round()
+        if not prompt_yes_no("Noch einmal spielen? [y/n]: "):
+            print("Danke fürs Spielen! Bis zum nächsten Mal.")
+            break
 
 
 if __name__ == "__main__":
